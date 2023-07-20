@@ -14,7 +14,7 @@
 #define DEEP_SLEEP_DELAY 30 * 60 * 1000000ULL // seconds
 
 #define ONE_WIRE_BUS 2
-#define TEMP_DELTA 1.0
+#define TEMP_DELTA 0.2
 
 #define EEPROM_SIZE 4096 // bytes
 #define EEPROM_TEMP_ADDRESS 4000
@@ -119,27 +119,43 @@ void setup()
   }
 
   WiFiClientSecure *espClient = new WiFiClientSecure();
-  espClient->setFingerprint(SERVER_FINGERPRINT);
+
+#ifdef MQTT_SERVER_FINGERPRINT
+  espClient->setFingerprint(PSTR(MQTT_SERVER_FINGERPRINT));
+#endif
+
+#if defined(MQTT_CLIENT_CERT) && defined(MQTT_CLIENT_KEY)
+  auto certificate = X509List(PSTR(MQTT_CLIENT_CERT));
+  auto privateKey = PrivateKey(PSTR(MQTT_CLIENT_KEY));
+  espClient->setClientRSACert(&certificate, &privateKey);
+#endif
 
   PubSubClient *client = new PubSubClient(*espClient);
 
   char client_id[13];
   sprintf(client_id, PSTR("ESP_%08x"), ESP.getChipId());
 
-  char *message = new char[10];
+  char message[10];
   sprintf(message, PSTR("%+4.1f"), temp);
 
   // Serial.println(F("Publish temp to test"));
   // Serial.println(message);
 
-  char topic[18];
-  sprintf(topic, PSTR("temp/%s"), client_id);
+  char topic[100];
+  sprintf(topic, PSTR(MQTT_TOPIC_PATTERN), client_id);
 
   client->setServer(MQTT_SERVER, MQTT_PORT);
+
+#if defined(MQTT_USER) && defined(MQTT_PASSWORD)
   client->connect(client_id, MQTT_USER, MQTT_PASSWORD);
+#else
+  client->connect(client_id);
+#endif
+
   client->publish(topic, message, true);
 
-  delete[] message;
+  client->disconnect();
+
   delete client;
   delete espClient;
 
