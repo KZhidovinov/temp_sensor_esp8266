@@ -8,13 +8,19 @@
 
 #include "secrets.h"
 
+#define DEBUG_TEMP_SENSOR 0
+#if DEBUG_TEMP_SENSOR
+#define DEEP_SLEEP_DELAY 15 * 1000000ULL // seconds
+#define TEMP_DELTA 1e-6
+#else
+#define DEEP_SLEEP_DELAY 30 * 60 * 1000000ULL // seconds
+#define TEMP_DELTA 0.2
+#endif
+
 #define WIFI_IS_OFF_AT_BOOT 1
 
 #define LED_PIN 2
-#define DEEP_SLEEP_DELAY 30 * 60 * 1000000ULL // seconds
-
 #define ONE_WIRE_BUS 2
-#define TEMP_DELTA 0.2
 
 #define EEPROM_SIZE 4096 // bytes
 #define EEPROM_TEMP_ADDRESS 4000
